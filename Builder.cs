@@ -42,6 +42,9 @@ namespace DbTableBuilder
                 case "Boolean":
                     dbType = "bool";
                     break;
+                case "DateTime":
+                    dbType = "datetime";
+                    break;
                 default:
                     dbType = "longtext";
                     break;
@@ -51,7 +54,7 @@ namespace DbTableBuilder
 
         private StringBuilder CreateColumnName(PropertyInfo property)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             var mapFieldAttr = GetAttribute<MapFieldAttribute>(property);
             var columnName = property.Name;
             if (mapFieldAttr != null)
@@ -94,13 +97,26 @@ namespace DbTableBuilder
             return sb.ToString().TrimEnd();
         }
 
-        private string GemerateEnum(PropertyInfo property)
+        private string GenerateEnum(PropertyInfo property)
         {
             var sb = CreateColumnName(property);
             var mapValueAttr = GetAttribute<MapValueAttribute>(property.PropertyType);
             if (mapValueAttr != null)
             {
-                sb.AppendFormat("{0} ", ConverToDbType(mapValueAttr.Values[0].GetType(), 50));
+                sb.AppendFormat("{0} ", ConverToDbType(mapValueAttr.Values.First().GetType(), 50));
+            }
+            else
+            {
+                var fields = property.PropertyType.GetFields(BindingFlags.Public | BindingFlags.Static);
+                if (fields.Length == 0)
+                {
+                    sb.Append("int ");
+                }
+                else
+                {
+                    mapValueAttr = GetAttribute<MapValueAttribute>(fields.First());
+                    sb.AppendFormat("{0} ", mapValueAttr != null ? ConverToDbType(mapValueAttr.Values.First().GetType(), 50) : "int");
+                }
             }
             return sb.ToString().TrimEnd();
         }
@@ -133,7 +149,7 @@ namespace DbTableBuilder
             sb.Append(Environment.NewLine);
 
             var columns = new ArrayList();
-            foreach (var property in type.GetProperties())
+            foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
             {
                 var noMapAttr = GetAttribute<MapIgnoreAttribute>(property);
                 if (noMapAttr != null)
@@ -143,11 +159,11 @@ namespace DbTableBuilder
                 var association = GetAttribute<AssociationAttribute>(property);
                 if (property.PropertyType.IsEnum)
                 {
-                    columns.Add(GemerateEnum(property));
+                    columns.Add(GenerateEnum(property));
                 }
                 else if (association != null)
                 {
-                    columns.Add(GemerateKey(tableName, property, association));
+                    //columns.Add(GemerateKey(tableName, property, association));
                 }
                 else
                 {

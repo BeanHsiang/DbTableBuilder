@@ -18,7 +18,7 @@ namespace DbTableBuilder
         public IList<string> GetNamespaceNames()
         {
             var ns = from obj in innerAssembly.GetTypes()
-                     where obj.Namespace.Contains("Model")
+                     where obj.Namespace != null && obj.Namespace.Contains("Model")
                      select obj.Namespace;
             return ns.Distinct().ToList();
         }
