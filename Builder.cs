@@ -14,7 +14,7 @@ namespace DbTableBuilder
     {
         private T GetAttribute<T>(MemberInfo obj) where T : Attribute
         {
-            object[] attrs = obj.GetCustomAttributes(typeof(T), false);
+            object[] attrs = obj.GetCustomAttributes(typeof(T), true);
             if (attrs.Length == 0)
             {
                 return null;
