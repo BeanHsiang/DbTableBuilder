@@ -25,6 +25,18 @@ namespace DbTableBuilder
             }
         }
 
+        private IEnumerable<PropertyInfo> GetProperties(Type type)
+        {
+            IEnumerable<PropertyInfo> p = new List<PropertyInfo>();
+            if (type.BaseType != null && !type.BaseType.Name.Equals("object", StringComparison.OrdinalIgnoreCase))
+            {
+                p = p.Concat(GetProperties(type.BaseType));
+            }
+            p = p.Concat(type.GetProperties(BindingFlags.Instance | BindingFlags.Public).Where(pInfo => pInfo.DeclaringType == type));
+            return p;
+
+        }
+
         private string ConverToDbType(Type type, int length)
         {
             string dbType;
@@ -57,7 +69,7 @@ namespace DbTableBuilder
             var sb = new StringBuilder();
             var mapFieldAttr = GetAttribute<MapFieldAttribute>(property);
             var columnName = property.Name;
-            if (mapFieldAttr != null)
+            if (mapFieldAttr != null && !string.IsNullOrEmpty(mapFieldAttr.MapName))
             {
                 columnName = mapFieldAttr.MapName;
             }
@@ -121,7 +133,7 @@ namespace DbTableBuilder
             return sb.ToString().TrimEnd();
         }
 
-        private string GemerateKey(string tableName, PropertyInfo property, AssociationAttribute association)
+        private string GenerateKey(string tableName, PropertyInfo property, AssociationAttribute association)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendFormat("KEY `{0}` (`{0}`),", association.ThisKey);
@@ -149,7 +161,7 @@ namespace DbTableBuilder
             sb.Append(Environment.NewLine);
 
             var columns = new ArrayList();
-            foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+            foreach (var property in GetProperties(type))
             {
                 var noMapAttr = GetAttribute<MapIgnoreAttribute>(property);
                 if (noMapAttr != null)
@@ -163,7 +175,7 @@ namespace DbTableBuilder
                 }
                 else if (association != null)
                 {
-                    //columns.Add(GemerateKey(tableName, property, association));
+                    //columns.Add(GenerateKey(tableName, property, association));
                 }
                 else
                 {
